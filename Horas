@@ -1,0 +1,29 @@
+┌─────────────────────────────────────────┐
+                    │            TOKIO RUNTIME                 │
+  Network           │  ┌──────────┐      ┌─────────────────┐  │
+  Sockets ─────────►│  │Backpress.│─────►│  Async Bridge   │  │
+                    │  │Semaphore │      │  (Channel TX)   │  │
+                    │  └──────────┘      └────────┬────────┘  │
+                    └───────────────────────────── │ ──────────┘
+                                    Boundary       │ std::thread
+                    ┌───────────────────────────── ▼ ──────────┐
+                    │           RAYON THREAD POOL               │
+                    │  ┌──────────────────────────────────┐    │
+                    │  │     Enum Dispatch (Static)        │    │
+                    │  │  XorFold | CRC | FNV1a            │    │
+                    │  └──────────────┬───────────────────┘    │
+                    │                 │                          │
+                    │  ┌──────────────▼───────────────────┐    │
+                    │  │      AVX2 SIMD Processing         │    │
+                    │  │   + Constant-Time Guarantees      │    │
+                    │  │   + compiler_fence barriers        │    │
+                    │  └──────────────────────────────────┘    │
+                    └──────────────────────────────────────────┘
+                    [dependencies]
+tokio        = { version = "1",   features = ["full"] }
+rayon        = "1.10"
+bytes        = "1.6"       # Zero-copy buffers
+memmap2      = "0.9"       # mmap support
+crossbeam    = "0.8"       # Lock-free channels بديل mpsc أسرع
+subtle       = "2.5"       # Constant-time primitives (crate متخصص)
+ملحوظة أخيرة: الـ subtle crate ده مكتوب خصيصاً لـ constant-time operations وبيتعامل مع edge cases الـ compiler optimizations بشكل أعمق من الـ manual implementation — في الـ security-critical paths يستاهل تستخدمه.
